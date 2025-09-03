@@ -1,0 +1,13 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: CSV-Data-Lake
+spec:
+  template:
+    spec:
+      containers:
+      - name: CSV-Data-Lake
+        image: XXX
+        command: []
+      restartPolicy: Never
+  backoffLimit: 4
