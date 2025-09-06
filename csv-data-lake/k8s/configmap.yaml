@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: csv-data-lake
+  namespace: default
+data:
+  ACCESS_KEY: minioadmin
+  SECRET_KEY: minioadmin
+  MINIO_API_ENDPOINT: http://127.0.0.1:9000

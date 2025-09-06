@@ -1,0 +1,16 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: csv-data-lake
+  namespace: default
+spec:
+  template:
+    spec:
+      containers:
+        - name: csv-data-lake
+          image: csv-data-lake:latest
+          imagePullPolicy: IfNotPresent
+          envFrom:
+            - configMapRef:
+                name: csv-data-lake
+      restartPolicy: Never
