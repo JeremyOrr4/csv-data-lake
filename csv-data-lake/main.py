@@ -1,97 +1,84 @@
 import os
-import pandas as pandas
-import pyarrow as pyarrow
-
+from pathlib import Path
+import pandas as pd
 from minio import Minio
 from dotenv import load_dotenv
 
+# Load environment variables
+load_dotenv()
 
-csv_directory = "csv/"
+
+# Environment variables
+ACCESS_KEY = os.getenv("ACCESS_KEY")
+SECRET_KEY = os.getenv("SECRET_KEY")
+MINIO_API_ENDPOINT = os.getenv("MINIO_API_ENDPOINT")
+CSV_DIRECTORY = Path("csv/")
+
+if not all([ACCESS_KEY, SECRET_KEY, MINIO_API_ENDPOINT]):
+    raise EnvironmentError("Please set ACCESS_KEY, SECRET_KEY, and MINIO_API_ENDPOINT in your kube configmap file.")
+
+def ingest_csv():
+    """
+    Lists all CSV files in the CSV_DIRECTORY
+    """
+    csv_files = [f for f in CSV_DIRECTORY.glob("*.csv") if f.is_file()]
+    if not csv_files:
+        print(f"No CSV files found in {CSV_DIRECTORY}")
+    return csv_files
+
+def convert_csv_files_to_parquet_files(csv_files):
+    """
+    Converts CSV files to Parquet and returns the list of Parquet files
+    """
+    parquet_files = []
+    for csv_file in csv_files:
+        try:
+            df = pd.read_csv(csv_file)
+            parquet_file = csv_file.with_suffix(".parquet")
+            df.to_parquet(parquet_file, index=False)
+            parquet_files.append(parquet_file)
+            print(f"Converted {csv_file} → {parquet_file}")
+        except Exception as e:
+            print(f"Error converting {csv_file} to Parquet: {e}")
+    return parquet_files
+
+def upload_parquet_to_minio(parquet_files):
+    """
+    Uploads Parquet files to MinIO bucket
+    """
+    minio_client = Minio(
+        MINIO_API_ENDPOINT,
+        access_key=ACCESS_KEY,
+        secret_key=SECRET_KEY,
+        secure=False
+    )
+
+    bucket_name = "csv"
+    if not minio_client.bucket_exists(bucket_name):
+        minio_client.make_bucket(bucket_name)
+        print(f"Bucket '{bucket_name}' created.")
+    else:
+        print(f"Bucket '{bucket_name}' already exists.")
+
+    for parquet_file in parquet_files:
+        object_name = parquet_file.name
+        try:
+            minio_client.fput_object(bucket_name, object_name, str(parquet_file))
+            print(f"Uploaded {parquet_file} → {bucket_name}/{object_name}")
+        except Exception as e:
+            print(f"Failed to upload {parquet_file}: {e}")
 
 def main():
-
-    def ingest_csv():
-        csv_files = [
-            os.path.join(csv_directory, f)
-            for f in os.listdir(csv_directory)
-            if os.path.isfile(os.path.join(csv_directory, f))
-        ]
-
-        return csv_files        
-        
-    
-    def convert_csv_files_to_parquet_files(csv_files):
-        parquet_files = []
-
-        for csv in csv_files:
-            dataframe = pandas.read_csv(csv)
-            
-            name, _ = os.path.splitext(csv)
-            parquet_file = f"{name}.parquet"
-            dataframe.to_parquet(parquet_file, index=False)
-
-            parquet_files.append(parquet_file)
-
-        return parquet_files
-    
-    # def upload_parquet_to_csv(parquet_files):
-            
-    #     load_dotenv()
-    #     ACCESS_KEY = os.environ.get('ACCESS_KEY')
-    #     SECRET_KEY = os.environ.get('SECRET_KEY')
-    #     MINIO_API_ENDPOINT = os.environ.get('MINIO_API_ENDPOINT')
-
-    #     MINIO_CLIENT = Minio(MINIO_API_ENDPOINT, access_key=ACCESS_KEY, secret_key=SECRET_KEY, secure=False)
-
-    #     found = MINIO_CLIENT.bucket_exists("csv")
-    #     if not found:
-    #         MINIO_CLIENT.make_bucket("csv")
-    #     else:
-    #         print("Bucket already exists")    
-    #         MINIO_CLIENT.fput_object("<bucketname>", "<pic.jpg>", LOCAL_FILE_PATH,)    
-    #         print("It is successfully uploaded to bucket")
-
-
-    # def upload_parquet_to_minio(parquet_files):
-        
-    #     load_dotenv()
-
-
-
-
-
-
-    #     # ingest_csv(file_path):
-    #     #     → validate_csv(file_path)
-    #     #     → parquet_path = convert_to_parquet(file_path)
-    #     #     → s3_uri = upload_to_minio(parquet_path)
-    #     #     → register_iceberg_table(table_name, schema, s3_uri)
-    #     #     → return success
-
-    
-
     csv_files = ingest_csv()
-    # validate_csv_files()
+    if not csv_files:
+        return
+
     parquet_files = convert_csv_files_to_parquet_files(csv_files)
-    upload_parquet_to_csv(parquet_files)
+    if not parquet_files:
+        print("No Parquet files were created.")
+        return
 
-
+    upload_parquet_to_minio(parquet_files)
 
 if __name__ == "__main__":
     main()
-
-
-
-# ingest_csv(file_path):
-#     → validate_csv(file_path)
-#     → parquet_path = convert_to_parquet(file_path)
-#     → s3_uri = upload_to_minio(parquet_path)
-#     → register_iceberg_table(table_name, schema, s3_uri)
-#     → return success
-
-
-
-
-
-
-

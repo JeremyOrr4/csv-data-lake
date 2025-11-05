@@ -4,6 +4,6 @@ metadata:
   name: csv-data-lake
   namespace: default
 data:
-  ACCESS_KEY: minioadmin
-  SECRET_KEY: minioadmin
-  MINIO_API_ENDPOINT: http://127.0.0.1:9000
+  ACCESS_KEY: minio
+  SECRET_KEY: some-password
+  MINIO_API_ENDPOINT: minio.default.svc.cluster.local:9000

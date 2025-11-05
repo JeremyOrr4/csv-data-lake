@@ -6,4 +6,4 @@ COPY . .
 
 RUN pip install --no-cache-dir -r requirements.txt
 
-CMD ["bash", "/app/init.sh"]
+CMD ["python3", "main.py"]
