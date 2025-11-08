@@ -6,4 +6,8 @@ cd init
 
 kubectl port-forward svc/minio 9000:9000 9001:9001
 
+kubectl --namespace default port-forward svc/example-trino-cluster-trino 8080:8080
+# http://127.0.0.1:8080
+
+
 cd ..
